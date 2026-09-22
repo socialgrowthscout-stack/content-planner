@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2b1d16">
+<title>Content Planner</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{
+  --bg:#f6f1ea; --card:#fffdf9; --ink:#2b1d16; --ink2:#6b5a4e;
+  --accent:#c96f4a; --accent2:#e9c8b8; --line:#e8ded2;
+  --green:#5b8a5e; --red:#b0563f; --chip:#f3e7dc;
+  --radius:18px; --shadow:0 8px 24px rgba(43,29,22,.10);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+body{max-width:480px;margin:0 auto;min-height:100vh;position:relative;
+  padding-bottom:90px;}
+/* Header */
+header{position:sticky;top:0;z-index:50;background:rgba(246,241,234,.92);
+  backdrop-filter:blur(10px);padding:14px 16px 10px;border-bottom:1px solid var(--line);}
+.hrow{display:flex;align-items:center;justify-content:space-between}
+h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.2px}
+.iconbtn{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  width:38px;height:38px;font-size:17px;cursor:pointer;color:var(--ink);box-shadow:var(--shadow)}
+.tabs{display:flex;gap:6px;margin-top:12px;background:var(--chip);padding:4px;border-radius:14px}
+.tab{flex:1;border:none;background:transparent;padding:9px 0;border-radius:11px;
+  font-weight:700;font-size:13px;color:var(--ink2);cursor:pointer}
+.tab.active{background:var(--ink);color:#fff}
+/* Planner toolbar */
+.toolbar{display:flex;gap:8px;padding:12px 16px 4px;align-items:center;flex-wrap:wrap}
+.seg{display:flex;background:var(--chip);border-radius:12px;padding:3px;gap:2px}
+.seg button{border:none;background:transparent;padding:7px 12px;border-radius:9px;
+  font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer}
+.seg button.active{background:#fff;color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.freq{display:flex;gap:6px;margin-left:auto}
+.freq button{border:1.5px solid var(--line);background:#fff;border-radius:20px;
+  padding:6px 11px;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer}
+.freq button.active{border-color:var(--accent);color:var(--accent);background:#fdf1ea}
+.navrow{display:flex;align-items:center;justify-content:space-between;padding:8px 16px}
+.navrow button{border:none;background:transparent;font-size:20px;color:var(--ink);cursor:pointer;padding:4px 10px}
+.navrow .lbl{font-weight:800;font-size:15px}
+/* Week view */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:4px 12px}
+.daycol{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  min-height:150px;padding:6px 4px;display:flex;flex-direction:column;gap:5px}
+.daycol.today{border-color:var(--accent);box-shadow:0 0 0 2px #f0d3c3}
+.dhead{text-align:center;font-size:10px;font-weight:800;color:var(--ink2);
+  text-transform:uppercase;letter-spacing:.4px;padding:2px 0}
+.dhead .dnum{display:block;font-size:15px;color:var(--ink);margin-top:1px}
+.slot{background:var(--chip);border-radius:9px;padding:5px 4px;font-size:9.5px;
+  cursor:pointer;border:1px dashed transparent;min-height:34px;position:relative;word-break:break-word}
+.slot.filled{background:#fdf3ec;border:1px solid var(--accent2);color:var(--ink)}
+.slot .del{position:absolute;top:-5px;right:-4px;background:var(--red);color:#fff;
+  border:none;border-radius:50%;width:15px;height:15px;font-size:9px;line-height:15px;
+  cursor:pointer;display:none;text-align:center;padding:0}
+.slot.filled .del{display:block}
+.slot .time{font-size:8px;color:var(--accent);font-weight:800;display:block}
+.addslot{border:none;background:transparent;color:var(--ink2);font-size:11px;
+  cursor:pointer;border-radius:8px;padding:3px;font-weight:700}
+/* Month view */
+.month{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:4px 12px}
+.mhead{text-align:center;font-size:10px;font-weight:800;color:var(--ink2);padding:4px 0;text-transform:uppercase}
+.mday{background:var(--card);border:1px solid var(--line);border-radius:10px;
+  min-height:64px;padding:3px;font-size:10px;cursor:pointer;position:relative}
+.mday.empty{background:transparent;border:none}
+.mday.today{border-color:var(--accent)}
+.mday .n{font-weight:800;font-size:11px}
+.mdots{display:flex;gap:2px;margin-top:3px;flex-wrap:wrap}
+.mdot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.mdot.p2{background:var(--green)} .mdot.p3{background:#8a6fbf}
+.mcount{position:absolute;bottom:2px;right:4px;font-size:8px;color:var(--ink2);font-weight:700}
+/* Ideas list */
+.ideas{padding:8px 16px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 2px;font-size:15px}
+.meta{font-size:11px;color:var(--ink2);margin-bottom:8px}
+.fields{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:10px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--ink2);display:flex;justify-content:space-between;align-items:center}
+.field input,.field textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;
+  padding:8px 10px;font-size:13px;background:#fff;color:var(--ink);font-family:inherit}
+.field textarea{resize:vertical;min-height:52px}
+.fld-del{border:none;background:transparent;color:var(--red);font-size:13px;cursor:pointer;padding:0 2px}
+.addfld{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.addfld button{border:1.5px dashed var(--line);background:transparent;border-radius:16px;
+  padding:5px 10px;font-size:11px;font-weight:700;color:var(--ink2);cursor:pointer}
+.card-actions{display:flex;gap:8px;margin-top:10px}
+.btn{border:none;border-radius:11px;padding:9px 14px;font-size:12px;font-weight:800;cursor:pointer}
+.btn.primary{background:var(--ink);color:#fff}
+.btn.accent{background:var(--accent);color:#fff}
+.btn.ghost{background:var(--chip);color:var(--ink2)}
+.btn.danger{background:#f7e3dd;color:var(--red)}
+/* Brand deals */
+.deals{padding:8px 16px;display:flex;flex-direction:column;gap:10px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 16px 10px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
+.kpi .v{font-size:17px;font-weight:800}
+.kpi .k{font-size:9.5px;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.status{font-size:10px;font-weight:800;padding:3px 9px;border-radius:12px;display:inline-block}
+.st-outreach{background:#efe6f7;color:#7a5aa8}.st-negotiating{background:#fdf0d8;color:#a97a1e}
+.st-contract{background:#e3eefb;color:#3a6ea8}.st-inprogress{background:#e6f2e6;color:var(--green)}
+.st-invoiced{background:#fdeaea;color:var(--red)}.st-paid{background:#d9f2e3;color:#1e7a4a}
+.money{font-weight:800;color:var(--green)}
+/* Bottom nav */
+nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;
+  background:var(--card);border-top:1px solid var(--line);display:flex;z-index:60;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom));}
+nav button{flex:1;border:none;background:transparent;font-size:11px;font-weight:700;
+  color:var(--ink2);cursor:pointer;padding:6px 0;display:flex;flex-direction:column;
+  align-items:center;gap:3px}
+nav button .ic{font-size:19px}
+nav button.active{color:var(--accent)}
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(43,29,22,.5);z-index:100;display:none;
+  align-items:flex-end;justify-content:center}
+.modal.open{display:flex}
+.sheet{background:var(--card);width:100%;max-width:480px;border-radius:22px 22px 0 0;
+  padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;
+  animation:up .25s ease}
+@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+.sheet h2{margin:0 0 14px;font-size:17px}
+.formrow{margin-bottom:12px}
+.formrow label{font-size:11px;font-weight:800;color:var(--ink2);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.formrow input,.formrow select,.formrow textarea{width:100%;border:1.5px solid var(--line);
+  border-radius:11px;padding:10px 12px;font-size:14px;background:#fff;font-family:inherit;color:var(--ink)}
+.sheet .btnrow{display:flex;gap:8px;margin-top:6px}
+.sheet .btnrow .btn{flex:1;padding:12px}
+.empty{padding:40px 20px;text-align:center;color:var(--ink2);font-size:13px}
+.toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--ink);
+  color:#fff;padding:9px 18px;border-radius:20px;font-size:12px;font-weight:700;z-index:200;
+  opacity:0;pointer-events:none;transition:opacity .25s}
+.toast.show{opacity:1}
+@media(max-width:380px){.slot{font-size:8.5px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 id="apptitle">Content Planner</h1>
+    <button class="iconbtn" onclick="exportData()" title="Backup">⤓</button>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="planner" onclick="switchTab('planner')">Planner</button>
+    <button class="tab" data-tab="ideas" onclick="switchTab('ideas')">Ideas</button>
+    <button class="tab" data-tab="deals" onclick="switchTab('deals')">Brand Deals</button>
+  </div>
+</header>
+
+<!-- PLANNER -->
+<section id="planner">
+  <div class="toolbar">
+    <div class="seg" id="viewseg">
+      <button class="active" onclick="setView('week')">Week</button>
+      <button onclick="setView('month')">Month</button>
+    </div>
+    <div class="freq" id="freq">
+      <button data-f="1" onclick="setFreq(1)">1x/day</button>
+      <button data-f="2" onclick="setFreq(2)">2x/day</button>
+      <button data-f="3" onclick="setFreq(3)">3x/day</button>
+    </div>
+  </div>
+  <div class="navrow">
+    <button onclick="nav(-1)">‹</button>
+    <div class="lbl" id="navlbl"></div>
+    <button onclick="nav(1)">›</button>
+  </div>
+  <div id="calroot"></div>
+</section>
+
+<!-- IDEAS -->
+<section id="ideas" style="display:none">
+  <div class="toolbar">
+    <button class="btn accent" onclick="openIdeaModal()">+ New Idea</button>
+    <button class="btn ghost" onclick="document.getElementById('importfile').click()">Import Backup</button>
+    <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+  <div class="ideas" id="idealist"></div>
+</section>
+
+<!-- DEALS -->
+<section id="deals" style="display:none">
+  <div class="kpis">
+    <div class="kpi"><div class="v" id="kpi-active">0</div><div class="k">Active</div></div>
+    <div class="kpi"><div class="v" id="kpi-pipeline">$0</div><div class="k">Pipeline</div></div>
+    <div class="kpi"><div class="v" id="kpi-earned">$0</div><div class="k">Earned</div></div>
+  </div>
+  <div class="toolbar"><button class="btn accent" onclick="openDealModal()">+ New Deal</button></div>
+  <div class="deals" id="deallist"></div>
+</section>
+
+<nav>
+  <button class="active" data-tab="planner" onclick="switchTab('planner')"><span class="ic">🗓</span>Planner</button>
+  <button data-tab="ideas" onclick="switchTab('ideas')"><span class="ic">💡</span>Ideas</button>
+  <button data-tab="deals" onclick="switchTab('deals')"><span class="ic">🤝</span>Deals</button>
+</nav>
+
+<!-- Post Modal -->
+<div class="modal" id="postmodal">
+  <div class="sheet">
+    <h2 id="postmodaltitle">Plan Post</h2>
+    <div class="formrow"><label>Title / Topic</label><input id="p_title" placeholder="e.g. 5 morning habits video"></div>
+    <div class="formrow"><label>Time</label><input id="p_time" type="time"></div>
+    <div class="formrow"><label>Assign idea (optional)</label><select id="p_idea"></select></div>
+    <div class="btnrow">
+      <button class="btn ghost" onclick="closeModal('postmodal')">Cancel</button>
+      <button class="btn primary" onclick="savePost()">Save Post</button>
+    </div>
+  </div>
+</div>
+
+<!-- Idea Modal -->
+<div class="modal" id="ideamodal">
+  <div class="sheet">
+    <h2>New Content Idea</h2>
+    <div class="formrow"><label>Idea title</label><input id="i_title" placeholder="e.g. GRWM morning routine"></div>
+    <div class="formrow"><label>Format</label>
+      <select id="i_format"><option>Reel / Short</option><option>Carousel</option><option>Photo</option><option>Story</option><option>Long video</option><option>Other</option></select>
+    </div>
+    <div class="formrow"><label>Notes</label><textarea id="i_notes" placeholder="Quick notes..."></textarea></div>
+    <div class="btnrow">
+      <button class="btn ghost" onclick="closeModal('ideamodal')">Cancel</button>
+      <button class="btn primary" onclick="saveIdea()">Create Idea</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deal Modal -->
+<div class="modal" id="dealmodal">
+  <div class="sheet">
+    <h2 id="dealmodaltitle">New Brand Deal</h2>
+    <div class="formrow"><label>Brand name</label><input id="d_brand" placeholder="e.g. Glossier"></div>
+    <div class="formrow"><label>Contact person</label><input id="d_contact" placeholder="name / email"></div>
+    <div class="formrow"><label>Deal value ($)</label><input id="d_value" type="number" placeholder="500"></div>
+    <div class="formrow"><label>Status</label>
+      <select id="d_status"><option>Outreach</option><option>Negotiating</option><option>Contract</option><option>In Progress</option><option>Invoiced</option><option>Paid</option></select>
+    </div>
+    <div class="formrow"><label>Deliverables</label><textarea id="d_deliv" placeholder="1 reel + 3 stories, due Oct 5..."></textarea></div>
+    <div class="formrow"><label>Deadline</label><input id="d_deadline" type="date"></div>
+    <div class="formrow"><label>Notes</label><textarea id="d_notes" placeholder="usage rights, payment terms..."></textarea></div>
+    <div class="btnrow">
+      <button class="btn danger" id="d_delete" style="display:none" onclick="deleteDeal()">Delete</button>
+      <button class="btn ghost" onclick="closeModal('dealmodal')">Cancel</button>
+      <button class="btn primary" onclick="saveDeal()">Save Deal</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ STATE ============ */
+const LS='contentplanner_v1';
+let state = load() || {
+  freq: 2,
+  view: 'week',
+  cursor: new Date().toISOString().slice(0,10),
+  posts: {},   // dateISO -> [{id,time,title,ideaId}]
+  ideas: [],   // {id,title,format,notes,fields:[{key,label,value}],created}
+  deals: []    // {id,brand,contact,value,status,deliverables,deadline,notes}
+};
+let editingPost=null, editingDeal=null, editingIdea=null;
+
+function load(){ try{ return JSON.parse(localStorage.getItem(LS)); }catch(e){ return null; } }
+function save(){ localStorage.setItem(LS, JSON.stringify(state)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function dstr(d){ return d.toISOString().slice(0,10); }
+function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+
+/* ============ TABS ============ */
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  ['planner','ideas','deals'].forEach(s=>document.getElementById(s).style.display = s===tab?'block':'none');
+  render();
+}
+
+/* ============ PLANNER ============ */
+function setView(v){ state.view=v; save(); render(); }
+function setFreq(f){ state.freq=f; save(); render(); }
+function nav(dir){
+  const c=new Date(state.cursor+'T12:00:00');
+  if(state.view==='week') c.setDate(c.getDate()+7*dir);
+  else { c.setMonth(c.getMonth()+dir); }
+  state.cursor=dstr(c); save(); render();
+}
+function defaultSlots(){
+  return state.freq===1?['18:00']:state.freq===2?['10:00','18:00']:['09:00','14:00','19:00'];
+}
+function render(){
+  document.querySelectorAll('#viewseg button').forEach(b=>b.classList.toggle('active', b.textContent.toLowerCase()===state.view));
+  document.querySelectorAll('#freq button').forEach(b=>b.classList.toggle('active', +b.dataset.f===state.freq));
+  if(state.view==='week') renderWeek(); else renderMonth();
+  renderIdeas(); renderDeals();
+}
+function weekDates(){
+  const c=new Date(state.cursor+'T12:00:00');
+  const mon=new Date(c); mon.setDate(c.getDate()-((c.getDay()+6)%7));
+  return Array.from({length:7},(_,i)=>{const d=new Date(mon); d.setDate(mon.getDate()+i); return d;});
+}
+function renderWeek(){
+  const days=weekDates();
+  document.getElementById('navlbl').textContent =
+    days[0].toLocaleDateString('en',{month:'short',day:'numeric'})+' – '+days[6].toLocaleDateString('en',{month:'short',day:'numeric'});
+  const today=dstr(new Date());
+  let html='<div class="week">';
+  const dn=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  days.forEach((d,i)=>{
+    const iso=dstr(d);
+    const posts=(state.posts[iso]||[]).slice().sort((a,b)=>a.time.localeCompare(b.time));
+    html+=`<div class="daycol ${iso===today?'today':''}">
+      <div class="dhead">${dn[i]}<span class="dnum">${d.getDate()}</span></div>`;
+    posts.forEach(p=>{
+      html+=`<div class="slot filled" onclick="editPost('${iso}','${p.id}')">
+        <button class="del" onclick="event.stopPropagation();removePost('${iso}','${p.id}')">×</button>
+        <span class="time">${p.time}</span>${esc(p.title)||'Untitled'}</div>`;
+    });
+    const empties=Math.max(0, state.freq-posts.length);
+    for(let k=0;k<empties;k++){
+      html+=`<button class="addslot" onclick="openPostModal('${iso}')">+ add</button>`;
+    }
+    html+=`</div>`;
+  });
+  html+='</div>';
+  document.getElementById('calroot').innerHTML=html;
+}
+function renderMonth(){
+  const c=new Date(state.cursor+'T12:00:00');
+  document.getElementById('navlbl').textContent=c.toLocaleDateString('en',{month:'long',year:'numeric'});
+  const y=c.getFullYear(), m=c.getMonth();
+  const first=new Date(y,m,1); const start=(first.getDay()+6)%7;
+  const dim=new Date(y,m+1,0).getDate();
+  const today=dstr(new Date());
+  let html='<div class="month">';
+  ['M','T','W','T','F','S','S'].forEach(d=>html+=`<div class="mhead">${d}</div>`);
+  for(let i=0;i<start;i++) html+='<div class="mday empty"></div>';
+  for(let d=1;d<=dim;d++){
+    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const n=(state.posts[iso]||[]).length;
+    let dots='';
+    (state.posts[iso]||[]).slice(0,3).forEach((p,idx)=>{
+      dots+=`<span class="mdot ${idx===1?'p2':idx===2?'p3':''}"></span>`;
+    });
+    html+=`<div class="mday ${iso===today?'today':''}" onclick="openDay('${iso}')">
+      <span class="n">${d}</span><div class="mdots">${dots}</div>
+      ${n>3?`<span class="mcount">+${n-3}</span>`:''}</div>`;
+  }
+  html+='</div>';
+  document.getElementById('calroot').innerHTML=html;
+}
+function openDay(iso){ state.cursor=iso; state.view='week'; save(); render(); }
+
+/* ============ POSTS ============ */
+function openPostModal(iso, existing){
+  editingPost={date:iso, id:existing||null};
+  const p = existing ? state.posts[iso].find(x=>x.id===existing) : null;
+  document.getElementById('postmodaltitle').textContent = p? 'Edit Post' : 'Plan Post — '+new Date(iso+'T12:00:00').toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric'});
+  document.getElementById('p_title').value = p? p.title : '';
+  document.getElementById('p_time').value = p? p.time : defaultSlots()[0];
+  const sel=document.getElementById('p_idea');
+  sel.innerHTML='<option value="">— none —</option>'+state.ideas.map(i=>`<option value="${i.id}" ${p&&p.ideaId===i.id?'selected':''}>${esc(i.title)}</option>`).join('');
+  openModal('postmodal');
+}
+function editPost(iso,id){ openPostModal(iso,id); }
+function savePost(){
+  const title=document.getElementById('p_title').value.trim();
+  const time=document.getElementById('p_time').value||'12:00';
+  const ideaId=document.getElementById('p_idea').value||null;
+  const {date,id}=editingPost;
+  if(!state.posts[date]) state.posts[date]=[];
+  if(id){
+    const p=state.posts[date].find(x=>x.id===id);
+    Object.assign(p,{title,time,ideaId});
+  } else {
+    state.posts[date].push({id:uid(),title,time,ideaId});
+  }
+  save(); closeModal('postmodal'); render(); toast('Post saved ✓');
+}
+function removePost(iso,id){
+  state.posts[iso]=state.posts[iso].filter(p=>p.id!==id);
+  if(!state.posts[iso].length) delete state.posts[iso];
+  save(); render(); toast('Removed');
+}
+
+/* ============ IDEAS ============ */
+const FIELD_DEFS=[
+  {key:'inspo', label:'Inspo video link'},
+  {key:'assets', label:'Assets to use'},
+  {key:'hook', label:'Hook'},
+  {key:'script', label:'Script'},
+  {key:'caption', label:'Caption'},
+  {key:'cta', label:'CTA'},
+  {key:'hashtags', label:'Hashtags'},
+  {key:'audio', label:'Audio / Trend'}
+];
+function openIdeaModal(){ editingIdea=null; document.getElementById('i_title').value=''; document.getElementById('i_notes').value=''; openModal('ideamodal'); }
+function saveIdea(){
+  const title=document.getElementById('i_title').value.trim();
+  if(!title){ toast('Add a title'); return; }
+  state.ideas.unshift({id:uid(), title, format:document.getElementById('i_format').value,
+    notes:document.getElementById('i_notes').value.trim(), fields:[], created:new Date().toISOString()});
+  save(); closeModal('ideamodal'); render(); toast('Idea added ✓');
+}
+function deleteIdea(id){
+  if(!confirm('Delete this idea?')) return;
+  state.ideas=state.ideas.filter(i=>i.id!==id);
+  Object.values(state.posts).forEach(arr=>arr.forEach(p=>{ if(p.ideaId===id) p.ideaId=null; }));
+  save(); render(); toast('Deleted');
+}
+function addField(id,key){
+  const idea=state.ideas.find(i=>i.id===id); if(!idea) return;
+  if(idea.fields.some(f=>f.key===key)) return;
+  const def=FIELD_DEFS.find(d=>d.key===key);
+  idea.fields.push({key,label:def.label,value:''});
+  save(); renderIdeas();
+}
+function removeField(id,key){
+  const idea=state.ideas.find(i=>i.id===id); if(!idea) return;
+  idea.fields=idea.fields.filter(f=>f.key!==key);
+  save(); renderIdeas();
+}
+function updateField(id,key,val){
+  const idea=state.ideas.find(i=>i.id===id); if(!idea) return;
+  idea.fields.find(f=>f.key===key).value=val; save();
+}
+function updateIdeaMeta(id,what,val){
+  const idea=state.ideas.find(i=>i.id===id); if(!idea) return;
+  idea[what]=val; save();
+}
+function renderIdeas(){
+  const root=document.getElementById('idealist');
+  if(!state.ideas.length){ root.innerHTML='<div class="empty">No ideas yet.<br>Tap "+ New Idea" to capture your first content idea 💡</div>'; return; }
+  root.innerHTML=state.ideas.map(idea=>{
+    const usedKeys=idea.fields.map(f=>f.key);
+    const avail=FIELD_DEFS.filter(d=>!usedKeys.includes(d.key));
+    return `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1">
+          <h3 contenteditable="true" onblur="updateIdeaMeta('${idea.id}','title',this.innerText.trim())">${esc(idea.title)}</h3>
+          <div class="meta">${esc(idea.format)} · ${new Date(idea.created).toLocaleDateString('en',{month:'short',day:'numeric'})}</div>
+        </div>
+        <button class="fld-del" onclick="deleteIdea('${idea.id}')" title="Delete idea">🗑</button>
+      </div>
+      <div class="fields">
+        <div class="field"><label>Notes</label>
+          <textarea onchange="updateIdeaMeta('${idea.id}','notes',this.value)" placeholder="Quick notes...">${esc(idea.notes)}</textarea></div>
+        ${idea.fields.map(f=>`
+        <div class="field"><label>${esc(f.label)} <button class="fld-del" onclick="removeField('${idea.id}','${f.key}')" title="Remove field">✕</button></label>
+          ${f.key==='script'||f.key==='caption'
+            ? `<textarea onchange="updateField('${idea.id}','${f.key}',this.value)" placeholder="${esc(f.label)}...">${esc(f.value)}</textarea>`
+            : `<input onchange="updateField('${idea.id}','${f.key}',this.value)" value="${esc(f.value)}" placeholder="${esc(f.label)}...">`}
+        </div>`).join('')}
+      </div>
+      ${avail.length?`<div class="addfld">${avail.map(d=>`<button onclick="addField('${idea.id}','${d.key}')">+ ${d.label}</button>`).join('')}</div>`:''}
+      <div class="card-actions">
+        <button class="btn primary" onclick="scheduleIdea('${idea.id}')">🗓 Schedule</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function scheduleIdea(ideaId){
+  const today=dstr(new Date());
+  openPostModal(today);
+  document.getElementById('p_idea').value=ideaId;
+  const idea=state.ideas.find(i=>i.id===ideaId);
+  document.getElementById('p_title').value=idea.title;
+}
+
+/* ============ DEALS ============ */
+function openDealModal(id){
+  editingDeal=id||null;
+  const d=id? state.deals.find(x=>x.id===id):null;
+  document.getElementById('dealmodaltitle').textContent=d?'Edit Deal':'New Brand Deal';
+  document.getElementById('d_brand').value=d?d.brand:'';
+  document.getElementById('d_contact').value=d?d.contact||'':'';
+  document.getElementById('d_value').value=d?d.value||'':'';
+  document.getElementById('d_status').value=d?d.status:'Outreach';
+  document.getElementById('d_deliv').value=d?d.deliverables||'':'';
+  document.getElementById('d_deadline').value=d?d.deadline||'':'';
+  document.getElementById('d_notes').value=d?d.notes||'':'';
+  document.getElementById('d_delete').style.display=d?'block':'none';
+  openModal('dealmodal');
+}
+function saveDeal(){
+  const brand=document.getElementById('d_brand').value.trim();
+  if(!brand){ toast('Brand name required'); return; }
+  const data={brand, contact:document.getElementById('d_contact').value.trim(),
+    value:+document.getElementById('d_value').value||0,
+    status:document.getElementById('d_status').value,
+    deliverables:document.getElementById('d_deliv').value.trim(),
+    deadline:document.getElementById('d_deadline').value,
+    notes:document.getElementById('d_notes').value.trim()};
+  if(editingDeal){ Object.assign(state.deals.find(x=>x.id===editingDeal), data); }
+  else state.deals.unshift({id:uid(), ...data});
+  save(); closeModal('dealmodal'); render(); toast('Deal saved ✓');
+}
+function deleteDeal(){
+  if(!confirm('Delete this deal?')) return;
+  state.deals=state.deals.filter(x=>x.id!==editingDeal);
+  save(); closeModal('dealmodal'); render(); toast('Deleted');
+}
+function cycleStatus(id){
+  const order=['Outreach','Negotiating','Contract','In Progress','Invoiced','Paid'];
+  const d=state.deals.find(x=>x.id===id);
+  d.status=order[(order.indexOf(d.status)+1)%order.length];
+  save(); renderDeals();
+}
+function stClass(s){ return 'st-'+s.toLowerCase().replace(' ',''); }
+function renderDeals(){
+  const active=state.deals.filter(d=>!['Paid','Invoiced'].includes(d.status));
+  const pipeline=state.deals.filter(d=>!['Paid'].includes(d.status)).reduce((a,d)=>a+(+d.value||0),0);
+  const earned=state.deals.filter(d=>d.status==='Paid').reduce((a,d)=>a+(+d.value||0),0);
+  document.getElementById('kpi-active').textContent=active.length;
+  document.getElementById('kpi-pipeline').textContent='$'+pipeline.toLocaleString();
+  document.getElementById('kpi-earned').textContent='$'+earned.toLocaleString();
+  const root=document.getElementById('deallist');
+  if(!state.deals.length){ root.innerHTML='<div class="empty">No brand deals yet.<br>Tap "+ New Deal" to start tracking 🤝</div>'; return; }
+  root.innerHTML=state.deals.map(d=>`
+    <div class="card" onclick="openDealModal('${d.id}')" style="cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <h3>${esc(d.brand)}</h3>
+          <div class="meta">${esc(d.contact||'')} ${d.deadline?('· due '+d.deadline):''}</div>
+        </div>
+        <div style="text-align:right">
+          ${d.value?`<div class="money">$${(+d.value).toLocaleString()}</div>`:''}
+          <span class="status ${stClass(d.status)}" onclick="event.stopPropagation();cycleStatus('${d.id}')">${d.status} ↻</span>
+        </div>
+      </div>
+      ${d.deliverables?`<div class="meta" style="margin-top:6px">📦 ${esc(d.deliverables)}</div>`:''}
+      ${d.notes?`<div class="meta">📝 ${esc(d.notes)}</div>`:''}
+    </div>`).join('');
+}
+
+/* ============ BACKUP ============ */
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='content-planner-backup-'+dstr(new Date())+'.json';
+  a.click(); toast('Backup downloaded');
+}
+function importData(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ state=JSON.parse(r.result); save(); render(); toast('Backup imported ✓'); }catch(e){ toast('Invalid file'); } };
+  r.readAsText(f); ev.target.value='';
+}
+
+/* ============ MODAL HELPERS ============ */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }));
+
+render();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js');}
+</script>
+</body>
+</html>

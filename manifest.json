@@ -1,0 +1,11 @@
+{
+  "name": "Content Planner",
+  "short_name": "Planner",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f6f1ea",
+  "theme_color": "#2b1d16",
+  "icons": [
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ]
+}
