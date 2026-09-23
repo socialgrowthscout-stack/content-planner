@@ -45,13 +45,15 @@ h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.2px}
 /* Week view */
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:4px 12px}
 .daycol{background:var(--card);border:1px solid var(--line);border-radius:14px;
-  min-height:150px;padding:6px 4px;display:flex;flex-direction:column;gap:5px}
+  min-height:150px;padding:6px 4px;display:flex;flex-direction:column;gap:5px;flex:1 0 auto}
 .daycol.today{border-color:var(--accent);box-shadow:0 0 0 2px #f0d3c3}
 .dhead{text-align:center;font-size:10px;font-weight:800;color:var(--ink2);
   text-transform:uppercase;letter-spacing:.4px;padding:2px 0}
 .dhead .dnum{display:block;font-size:15px;color:var(--ink);margin-top:1px}
 .slot{background:var(--chip);border-radius:9px;padding:5px 4px;font-size:9.5px;
   cursor:pointer;border:1px dashed transparent;min-height:34px;position:relative;word-break:break-word}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:4px 10px;overflow-x:auto}
+.daycol{min-width:0}
 .slot.filled{background:#fdf3ec;border:1px solid var(--accent2);color:var(--ink)}
 .slot .del{position:absolute;top:-5px;right:-4px;background:var(--red);color:#fff;
   border:none;border-radius:50%;width:15px;height:15px;font-size:9px;line-height:15px;
@@ -165,7 +167,10 @@ nav button.active{color:var(--accent)}
   </div>
   <div class="navrow">
     <button onclick="nav(-1)">‹</button>
-    <div class="lbl" id="navlbl"></div>
+    <div style="text-align:center">
+      <div class="lbl" id="navlbl"></div>
+      <input type="date" id="weekstart" onchange="setWeekStart(this.value)" style="border:1.5px solid var(--line);border-radius:10px;padding:5px 8px;font-size:11px;background:#fff;color:var(--ink2);margin-top:4px">
+    </div>
     <button onclick="nav(1)">›</button>
   </div>
   <div id="calroot"></div>
@@ -202,8 +207,12 @@ nav button.active{color:var(--accent)}
 <div class="modal" id="postmodal">
   <div class="sheet">
     <h2 id="postmodaltitle">Plan Post</h2>
-    <div class="formrow"><label>Title / Topic</label><input id="p_title" placeholder="e.g. 5 morning habits video"></div>
+    <div class="formrow"><label>Content idea / Topic</label><input id="p_title" placeholder="e.g. 5 morning habits video"></div>
+    <div class="formrow"><label>Format type</label>
+      <select id="p_format"><option>Video (Reel/Short)</option><option>Image / Photo</option><option>Carousel</option><option>Story</option><option>Long video</option></select></div>
     <div class="formrow"><label>Time</label><input id="p_time" type="time"></div>
+    <div class="formrow"><label>Hook (first 3 sec)</label><input id="p_hook" placeholder="e.g. Nobody talks about this..."></div>
+    <div class="formrow"><label>Assets (image or video links)</label><textarea id="p_assets" placeholder="Paste drive/dropbox links, one per line"></textarea></div>
     <div class="formrow"><label>Assign idea (optional)</label><select id="p_idea"></select></div>
     <div class="btnrow">
       <button class="btn ghost" onclick="closeModal('postmodal')">Cancel</button>
@@ -306,6 +315,8 @@ function renderWeek(){
   const days=weekDates();
   document.getElementById('navlbl').textContent =
     days[0].toLocaleDateString('en',{month:'short',day:'numeric'})+' – '+days[6].toLocaleDateString('en',{month:'short',day:'numeric'});
+  document.getElementById('weekstart').value = dstr(days[0]);
+  document.getElementById('weekstart').style.display = state.view==='week' ? 'block' : 'none';
   const today=dstr(new Date());
   let html='<div class="week">';
   const dn=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -315,9 +326,10 @@ function renderWeek(){
     html+=`<div class="daycol ${iso===today?'today':''}">
       <div class="dhead">${dn[i]}<span class="dnum">${d.getDate()}</span></div>`;
     posts.forEach(p=>{
+      const fmtIcon = p.format && p.format.startsWith('Image') ? '🖼' : p.format==='Carousel' ? '📑' : p.format==='Story' ? '⭕' : '🎬';
       html+=`<div class="slot filled" onclick="editPost('${iso}','${p.id}')">
         <button class="del" onclick="event.stopPropagation();removePost('${iso}','${p.id}')">×</button>
-        <span class="time">${p.time}</span>${esc(p.title)||'Untitled'}</div>`;
+        <span class="time">${fmtIcon} ${p.time}</span>${esc(p.title)||'Untitled'}</div>`;
     });
     const empties=Math.max(0, state.freq-posts.length);
     for(let k=0;k<empties;k++){
@@ -353,6 +365,7 @@ function renderMonth(){
   document.getElementById('calroot').innerHTML=html;
 }
 function openDay(iso){ state.cursor=iso; state.view='week'; save(); render(); }
+function setWeekStart(v){ if(!v) return; state.cursor=v; save(); render(); }
 
 /* ============ POSTS ============ */
 function openPostModal(iso, existing){
@@ -361,6 +374,9 @@ function openPostModal(iso, existing){
   document.getElementById('postmodaltitle').textContent = p? 'Edit Post' : 'Plan Post — '+new Date(iso+'T12:00:00').toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric'});
   document.getElementById('p_title').value = p? p.title : '';
   document.getElementById('p_time').value = p? p.time : defaultSlots()[0];
+  document.getElementById('p_format').value = p&&p.format ? p.format : 'Video (Reel/Short)';
+  document.getElementById('p_hook').value = p&&p.hook ? p.hook : '';
+  document.getElementById('p_assets').value = p&&p.assets ? p.assets : '';
   const sel=document.getElementById('p_idea');
   sel.innerHTML='<option value="">— none —</option>'+state.ideas.map(i=>`<option value="${i.id}" ${p&&p.ideaId===i.id?'selected':''}>${esc(i.title)}</option>`).join('');
   openModal('postmodal');
@@ -370,13 +386,16 @@ function savePost(){
   const title=document.getElementById('p_title').value.trim();
   const time=document.getElementById('p_time').value||'12:00';
   const ideaId=document.getElementById('p_idea').value||null;
+  const format=document.getElementById('p_format').value;
+  const hook=document.getElementById('p_hook').value.trim();
+  const assets=document.getElementById('p_assets').value.trim();
   const {date,id}=editingPost;
   if(!state.posts[date]) state.posts[date]=[];
   if(id){
     const p=state.posts[date].find(x=>x.id===id);
-    Object.assign(p,{title,time,ideaId});
+    Object.assign(p,{title,time,ideaId,format,hook,assets});
   } else {
-    state.posts[date].push({id:uid(),title,time,ideaId});
+    state.posts[date].push({id:uid(),title,time,ideaId,format,hook,assets});
   }
   save(); closeModal('postmodal'); render(); toast('Post saved ✓');
 }
