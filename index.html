@@ -116,6 +116,18 @@ nav button{flex:1;border:none;background:transparent;font-size:11px;font-weight:
   align-items:center;gap:3px}
 nav button .ic{font-size:19px}
 nav button.active{color:var(--accent)}
+.attachrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.attachrow .thumb{width:52px;height:52px;object-fit:cover;border-radius:9px;border:1.5px solid var(--line)}
+.attachrow .vidthumb{width:52px;height:52px;border-radius:9px;border:1.5px solid var(--line);
+  background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px}
+.attachbtns{display:flex;gap:6px;margin-top:6px}
+.attachbtns .btn{padding:6px 10px;font-size:11px}
+/* month day expanded */
+.mday .dayposts{margin-top:4px;display:flex;flex-direction:column;gap:2px}
+.mday .mpslot{font-size:8.5px;background:var(--chip);border-radius:5px;padding:2px 4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.mday.expanded{min-height:auto;grid-column:span 7;background:var(--card);z-index:5;box-shadow:var(--shadow)}
+.mday.expanded .n{font-size:14px}
 /* Modal */
 .modal{position:fixed;inset:0;background:rgba(43,29,22,.5);z-index:100;display:none;
   align-items:flex-end;justify-content:center}
@@ -143,7 +155,6 @@ nav button.active{color:var(--accent)}
 <header>
   <div class="hrow">
     <h1 id="apptitle">Content Planner</h1>
-    <button class="iconbtn" onclick="exportData()" title="Backup">⤓</button>
   </div>
   <div class="tabs" id="tabs">
     <button class="tab active" data-tab="planner" onclick="switchTab('planner')">Planner</button>
@@ -210,10 +221,26 @@ nav button.active{color:var(--accent)}
     <div class="formrow"><label>Content idea / Topic</label><input id="p_title" placeholder="e.g. 5 morning habits video"></div>
     <div class="formrow"><label>Format type</label>
       <select id="p_format"><option>Video (Reel/Short)</option><option>Image / Photo</option><option>Carousel</option><option>Story</option><option>Long video</option></select></div>
+    <div class="formrow"><label>Reference (link or image)</label>
+      <input id="p_ref_link" placeholder="Paste inspo/reference link">
+      <div class="attachrow" id="p_ref_attach"></div>
+      <div class="attachbtns">
+        <button class="btn ghost" onclick="pickFile('p_ref')">📎 Attach image</button>
+        <button class="btn ghost" onclick="clearAttach('p_ref')">Clear</button>
+      </div>
+      <input type="file" id="file_p_ref" accept="image/*" style="display:none" onchange="onFilePicked(event,'p_ref')">
+    </div>
     <div class="formrow"><label>Time</label><input id="p_time" type="time"></div>
     <div class="formrow"><label>Hook (first 3 sec)</label><input id="p_hook" placeholder="e.g. Nobody talks about this..."></div>
-    <div class="formrow"><label>Assets (image or video links)</label><textarea id="p_assets" placeholder="Paste drive/dropbox links, one per line"></textarea></div>
-    <div class="formrow"><label>Assign idea (optional)</label><select id="p_idea"></select></div>
+    <div class="formrow"><label>Assets (images or videos)</label>
+      <div class="attachrow" id="p_assets_attach"></div>
+      <div class="attachbtns">
+        <button class="btn ghost" onclick="pickFile('p_assets')">🖼 Attach image</button>
+        <button class="btn ghost" onclick="pickFile('p_assets','video')">🎬 Attach video</button>
+        <button class="btn ghost" onclick="clearAttach('p_assets')">Clear</button>
+      </div>
+      <input type="file" id="file_p_assets" accept="image/*,video/*" style="display:none" onchange="onFilePicked(event,'p_assets')">
+    </div>
     <div class="btnrow">
       <button class="btn ghost" onclick="closeModal('postmodal')">Cancel</button>
       <button class="btn primary" onclick="savePost()">Save Post</button>
@@ -228,6 +255,25 @@ nav button.active{color:var(--accent)}
     <div class="formrow"><label>Idea title</label><input id="i_title" placeholder="e.g. GRWM morning routine"></div>
     <div class="formrow"><label>Format</label>
       <select id="i_format"><option>Reel / Short</option><option>Carousel</option><option>Photo</option><option>Story</option><option>Long video</option><option>Other</option></select>
+    </div>
+    <div class="formrow"><label>Reference (link or image)</label>
+      <input id="i_ref_link" placeholder="Paste inspo/reference link">
+      <div class="attachrow" id="i_ref_attach"></div>
+      <div class="attachbtns">
+        <button class="btn ghost" onclick="pickFile('i_ref')">📎 Attach image</button>
+        <button class="btn ghost" onclick="clearAttach('i_ref')">Clear</button>
+      </div>
+      <input type="file" id="file_i_ref" accept="image/*" style="display:none" onchange="onFilePicked(event,'i_ref')">
+    </div>
+    <div class="formrow"><label>Hook</label><input id="i_hook" placeholder="e.g. Stop doing this mistake..."></div>
+    <div class="formrow"><label>Assets (images or videos)</label>
+      <div class="attachrow" id="i_assets_attach"></div>
+      <div class="attachbtns">
+        <button class="btn ghost" onclick="pickFile('i_assets')">🖼 Attach image</button>
+        <button class="btn ghost" onclick="pickFile('i_assets','video')">🎬 Attach video</button>
+        <button class="btn ghost" onclick="clearAttach('i_assets')">Clear</button>
+      </div>
+      <input type="file" id="file_i_assets" accept="image/*,video/*" style="display:none" onchange="onFilePicked(event,'i_assets')">
     </div>
     <div class="formrow"><label>Notes</label><textarea id="i_notes" placeholder="Quick notes..."></textarea></div>
     <div class="btnrow">
@@ -357,15 +403,64 @@ function renderMonth(){
     (state.posts[iso]||[]).slice(0,3).forEach((p,idx)=>{
       dots+=`<span class="mdot ${idx===1?'p2':idx===2?'p3':''}"></span>`;
     });
-    html+=`<div class="mday ${iso===today?'today':''}" onclick="openDay('${iso}')">
+    const dayPosts=(state.posts[iso]||[]).slice().sort((a,b)=>a.time.localeCompare(b.time));
+    const expanded = state.expandedDay===iso;
+    let slotsHtml='';
+    if(expanded){
+      slotsHtml='<div class="dayposts">'+dayPosts.map(p=>
+        `<div class="mpslot" onclick="event.stopPropagation();editPost('${iso}','${p.id}')">${p.time} ${esc(p.title)||'Untitled'}</div>`
+      ).join('')+'<button class="addslot" onclick="event.stopPropagation();openPostModal(\''+iso+'\')">+ add post</button></div>';
+    }
+    html+=`<div class="mday ${iso===today?'today':''} ${expanded?'expanded':''}" onclick="toggleDay('${iso}')">
       <span class="n">${d}</span><div class="mdots">${dots}</div>
-      ${n>3?`<span class="mcount">+${n-3}</span>`:''}</div>`;
+      ${n>3&&!expanded?`<span class="mcount">+${n-3}</span>`:''}${slotsHtml}</div>`;
   }
   html+='</div>';
   document.getElementById('calroot').innerHTML=html;
 }
 function openDay(iso){ state.cursor=iso; state.view='week'; save(); render(); }
+function toggleDay(iso){
+  state.expandedDay = state.expandedDay===iso ? null : iso;
+  save(); render();
+}
 function setWeekStart(v){ if(!v) return; state.cursor=v; save(); render(); }
+
+
+/* ============ ATTACHMENTS ============ */
+/* temp attachments for the currently-open post modal: {p_ref:[], p_assets:[]} */
+let postAttach = { p_ref: [], p_assets: [] };
+
+function pickFile(key, kind){
+  const inp = document.getElementById('file_'+key);
+  inp.accept = kind==='video' ? 'video/*' : 'image/*';
+  inp.dataset.key = key;
+  inp.click();
+}
+function onFilePicked(e, key){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    postAttach[key].push({name:f.name, type:f.type, data:r.result});
+    renderAttach(key);
+  };
+  r.readAsDataURL(f);
+  e.target.value='';
+}
+function removeAttach(key, idx){
+  postAttach[key].splice(idx,1); renderAttach(key);
+}
+function clearAttach(key){ postAttach[key]=[]; renderAttach(key); }
+function renderAttach(key){
+  const row = document.getElementById(key+'_attach');
+  row.innerHTML = postAttach[key].map((a,i)=>{
+    if(a.type.startsWith('video')) return `<div class="vidthumb">🎬</div>`;
+    return `<img class="thumb" src="${a.data}"><button class="fld-del" style="position:absolute" onclick="removeAttach('${key}',${i})">✕</button>`;
+  }).join('');
+}
+function loadAttach(key, arr){
+  postAttach[key] = arr || [];
+  renderAttach(key);
+}
 
 /* ============ POSTS ============ */
 function openPostModal(iso, existing){
@@ -376,26 +471,27 @@ function openPostModal(iso, existing){
   document.getElementById('p_time').value = p? p.time : defaultSlots()[0];
   document.getElementById('p_format').value = p&&p.format ? p.format : 'Video (Reel/Short)';
   document.getElementById('p_hook').value = p&&p.hook ? p.hook : '';
-  document.getElementById('p_assets').value = p&&p.assets ? p.assets : '';
-  const sel=document.getElementById('p_idea');
-  sel.innerHTML='<option value="">— none —</option>'+state.ideas.map(i=>`<option value="${i.id}" ${p&&p.ideaId===i.id?'selected':''}>${esc(i.title)}</option>`).join('');
+  document.getElementById('p_ref_link').value = p&&p.refLink ? p.refLink : '';
+  loadAttach('p_ref', p? p.refAttach : []);
+  loadAttach('p_assets', p? p.assetsAttach : []);
   openModal('postmodal');
 }
 function editPost(iso,id){ openPostModal(iso,id); }
 function savePost(){
   const title=document.getElementById('p_title').value.trim();
   const time=document.getElementById('p_time').value||'12:00';
-  const ideaId=document.getElementById('p_idea').value||null;
   const format=document.getElementById('p_format').value;
   const hook=document.getElementById('p_hook').value.trim();
-  const assets=document.getElementById('p_assets').value.trim();
+  const refLink=document.getElementById('p_ref_link').value.trim();
+  const refAttach=postAttach.p_ref.slice();
+  const assetsAttach=postAttach.p_assets.slice();
   const {date,id}=editingPost;
   if(!state.posts[date]) state.posts[date]=[];
   if(id){
     const p=state.posts[date].find(x=>x.id===id);
-    Object.assign(p,{title,time,ideaId,format,hook,assets});
+    Object.assign(p,{title,time,format,hook,refLink,refAttach,assetsAttach});
   } else {
-    state.posts[date].push({id:uid(),title,time,ideaId,format,hook,assets});
+    state.posts[date].push({id:uid(),title,time,format,hook,refLink,refAttach,assetsAttach});
   }
   save(); closeModal('postmodal'); render(); toast('Post saved ✓');
 }
@@ -416,11 +512,19 @@ const FIELD_DEFS=[
   {key:'hashtags', label:'Hashtags'},
   {key:'audio', label:'Audio / Trend'}
 ];
-function openIdeaModal(){ editingIdea=null; document.getElementById('i_title').value=''; document.getElementById('i_notes').value=''; openModal('ideamodal'); }
+function openIdeaModal(){ editingIdea=null;
+  document.getElementById('i_title').value=''; document.getElementById('i_notes').value='';
+  document.getElementById('i_ref_link').value=''; document.getElementById('i_hook').value='';
+  loadAttach('i_ref',[]); loadAttach('i_assets',[]);
+  openModal('ideamodal'); }
 function saveIdea(){
   const title=document.getElementById('i_title').value.trim();
   if(!title){ toast('Add a title'); return; }
   state.ideas.unshift({id:uid(), title, format:document.getElementById('i_format').value,
+    refLink:document.getElementById('i_ref_link').value.trim(),
+    refAttach:postAttach.i_ref.slice(),
+    hook:document.getElementById('i_hook').value.trim(),
+    assetsAttach:postAttach.i_assets.slice(),
     notes:document.getElementById('i_notes').value.trim(), fields:[], created:new Date().toISOString()});
   save(); closeModal('ideamodal'); render(); toast('Idea added ✓');
 }
@@ -465,6 +569,10 @@ function renderIdeas(){
         <button class="fld-del" onclick="deleteIdea('${idea.id}')" title="Delete idea">🗑</button>
       </div>
       <div class="fields">
+        ${idea.refLink?`<div class="field"><label>Reference link</label><input value="${esc(idea.refLink)}" onchange="updateIdeaMeta('${idea.id}','refLink',this.value)"></div>`:''}
+        ${idea.refAttach&&idea.refAttach.length?`<div class="field"><label>Reference image</label><div class="attachrow">${idea.refAttach.map(a=>a.type.startsWith('video')?'<div class="vidthumb">🎬</div>':`<img class="thumb" src="${a.data}">`).join('')}</div></div>`:''}
+        ${idea.hook?`<div class="field"><label>Hook</label><input value="${esc(idea.hook)}" onchange="updateIdeaMeta('${idea.id}','hook',this.value)"></div>`:''}
+        ${idea.assetsAttach&&idea.assetsAttach.length?`<div class="field"><label>Assets</label><div class="attachrow">${idea.assetsAttach.map(a=>a.type.startsWith('video')?'<div class="vidthumb">🎬</div>':`<img class="thumb" src="${a.data}">`).join('')}</div></div>`:''}
         <div class="field"><label>Notes</label>
           <textarea onchange="updateIdeaMeta('${idea.id}','notes',this.value)" placeholder="Quick notes...">${esc(idea.notes)}</textarea></div>
         ${idea.fields.map(f=>`
